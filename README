@@ -1,0 +1,6 @@
+These utils depend on libnjb to build.
+
+Use:
+gcc -o njb-utils -lnjb njb-utils.c
+
+because there is no makefile yet.
