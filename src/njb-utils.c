@@ -6,22 +6,23 @@ int get_devices(njb_t *njbs, int i);
 static void datafile_dump (njb_datafile_t *df, FILE *fp);
 
 
-static void datafile_dump (njb_datafile_t *df, FILE *fp)
+static void datafile_dump(njb_datafile_t *df, FILE *fp)
 {
-  u_int64_t size = df->filesize;
-  
-  fprintf(fp, "File ID  : %u\n", df->dfid);
-  fprintf(fp, "Filename : %s\n", df->filename);
-  if (df->folder != NULL) {
-    fprintf(fp, "Folder   : %s\n", df->folder);
-  }
-  fprintf(fp, "Fileflags: %08X\n", df->flags);
-#ifdef __WIN32__
-  fprintf(fp, "Size :     %I64u bytes\n", size);
-#else
-  fprintf(fp, "Size :     %llu bytes\n", size);
-#endif
+    u_int64_t size = df->filesize;
+
+    fprintf(fp, "File ID  : %u\n", df->dfid);
+    fprintf(fp, "Filename : %s\n", df->filename);
+    if (df->folder != NULL) {
+        fprintf(fp, "Folder   : %s\n", df->folder);
+    }
+    fprintf(fp, "Fileflags: %08X\n", df->flags);
+    #ifdef __WIN32__
+        fprintf(fp, "Size :     %I64u bytes\n", size);
+    #else
+        fprintf(fp, "Size :     %llu bytes\n", size);
+    #endif
 }
+
 
 int detect(njb_t *njbs)
 {
@@ -40,7 +41,9 @@ int detect(njb_t *njbs)
     return someint;
 }
 
-int get_devices(njb_t *njbs, int i) {
+
+int get_devices(njb_t *njbs, int i)
+{
     njb_t *njb;
     njb = njbs;
     njb_datafile_t *filetag;
@@ -55,8 +58,10 @@ int get_devices(njb_t *njbs, int i) {
         return 1;
     }
 
+    printf("Getting datafile tag");
     NJB_Reset_Get_Datafile_Tag(njb);
-    while ( (filetag = NJB_Get_Datafile_Tag (njb)) ) {
+    printf("Entering while loop to get ifo on all files");
+    while ((filetag = NJB_Get_Datafile_Tag (njb))) {
         datafile_dump(filetag, stdout);
         printf("----------------------------------\n");
         NJB_Datafile_Destroy(filetag);
@@ -110,6 +115,8 @@ int main(void)
             printf("Error getting device name.\n");
             return 1;
         }
+         NJB_Release(njb);
+         NJB_Close(njb);
     }
 
     if (num_devs > 0) {
