@@ -1,9 +1,18 @@
 #include <libnjb.h>
+#include <sqlite3.h>
+#include <string.h>
 
 // Some prototypes
 int detect(njb_t *njbs);
 int get_devices(njb_t *njbs, int i);
+int sync_db(njb_t *njb);
 static void datafile_dump (njb_datafile_t *df, FILE *fp);
+njb_songid_frame_t* songid_frame_find(njb_songid_t *tag, const char *);
+void callback(void);
+
+void callback(void)
+{
+}
 
 
 static void datafile_dump(njb_datafile_t *df, FILE *fp)
@@ -21,6 +30,101 @@ static void datafile_dump(njb_datafile_t *df, FILE *fp)
     #else
         fprintf(fp, "Size :     %llu bytes\n", size);
     #endif
+}
+
+static void songid_frame_dump (njb_songid_frame_t *frame, FILE *fp)
+{
+  fprintf(fp, "%s: ", frame->label);
+
+  if ( frame->type == NJB_TYPE_STRING ) {
+    fprintf(fp, "%s\n", frame->data.strval);
+  } else if (frame->type == NJB_TYPE_UINT16) {
+    fprintf(fp, "%d\n", frame->data.u_int16_val);
+  } else if (frame->type == NJB_TYPE_UINT32) {
+    fprintf(fp, "%u\n", frame->data.u_int32_val);
+  } else {
+    fprintf(fp, "(weird data word size, cannot display!)\n");
+  }
+}
+
+njb_songid_frame_t* songid_frame_find(njb_songid_t *tag, const char *type)
+{
+    njb_songid_frame_t *frame;
+    frame = NJB_Songid_Findframe(tag, type);
+    return frame;
+}
+
+int sync_db(njb_t *njb)
+{
+    sqlite3 *db;
+    int rc;
+    char *zErrMsg = 0;
+    char *sql_statement;
+    char *sql_statement_check;
+    njb_songid_frame_t *frame;
+    njb_songid_t *songtag;
+
+    printf("Opening database\n");
+    rc = sqlite3_open("njb.db", &db);
+    if (rc)
+    {
+        /* Oh no, there was a problem opening the DB */
+        fprintf(stderr, "Cannot open the database: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return 1;
+    }
+
+    if (NJB_Open(njb) == -1)
+    {
+        NJB_Error_Dump(njb,stderr);
+        return 1;
+    }
+
+    if (NJB_Capture(njb) == -1)
+    {
+        NJB_Error_Dump(njb,stderr);
+        return -1;
+    }
+
+    printf("Looping through songs\n");
+    NJB_Reset_Get_Track_Tag(njb);
+
+    while ((songtag = NJB_Get_Track_Tag(njb)))
+    {
+        NJB_Songid_Reset_Getframe(songtag);
+        /*
+        songtag->trid
+        */
+        /*while ((frame = NJB_Songid_Getframe(songtag)))
+        {
+            printf("---------------------------------------\n");
+        } */
+        frame = songid_frame_find(songtag, FR_GENRE);
+        fprintf(stdout, "%s: ", frame->label);
+
+        if (frame->type == NJB_TYPE_STRING) {
+            fprintf(stdout, "%s\n", frame->data.strval);
+        } else if (frame->type == NJB_TYPE_UINT16) {
+            fprintf(stdout, "%d\n", frame->data.u_int16_val);
+        } else if (frame->type == NJB_TYPE_UINT32) {
+            fprintf(stdout, "%u\n", frame->data.u_int32_val);
+        } else {
+            fprintf(stdout, "(weird data word size, cannot display!)\n");
+        }
+
+/*        sql_statement_check = strcat("SELECT * FROM genre WHERE name=", frame->data.strval);
+        if (sqlite3_exec(db, sql_statement_check, 0, NULL, &zErrMsg) != 0)
+        {
+            sql_statement = strcat("INSERT INTO genre VALUES(", frame->data.strval);
+            sql_statement = strcat(sql_statement, ")");
+            sqlite3_exec(db, sql_statement, 0, NULL, &zErrMsg);
+            NJB_Songid_Destroy(songtag);
+        }*/
+    }
+    sqlite3_close(db);
+    NJB_Release(njb);
+    NJB_Close(njb);
+    return 0;
 }
 
 
@@ -58,11 +162,13 @@ int get_devices(njb_t *njbs, int i)
         return 1;
     }
 
-    printf("Getting datafile tag");
+    printf("Getting datafile tag\n");
     NJB_Reset_Get_Datafile_Tag(njb);
-    printf("Entering while loop to get ifo on all files");
-    while ((filetag = NJB_Get_Datafile_Tag (njb))) {
+    printf("Entering while loop to get ifo on all files\n");
+    while ((filetag = NJB_Get_Datafile_Tag(njb))) {
         datafile_dump(filetag, stdout);
+        NJB_Get_File(njb, filetag->dfid, filetag->filesize, filetag->filename,
+NULL, NULL);
         printf("----------------------------------\n");
         NJB_Datafile_Destroy(filetag);
     }
@@ -123,6 +229,7 @@ int main(void)
         printf("Please pick one from the above: ");
         scanf("%d", &user_input);
         get_devices(njbs, user_input);
+        sync_db(njbs);
     }
 
     return 0;
