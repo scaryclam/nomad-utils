@@ -8,11 +8,6 @@ int get_devices(njb_t *njbs, int i);
 int sync_db(njb_t *njb);
 static void datafile_dump (njb_datafile_t *df, FILE *fp);
 njb_songid_frame_t* songid_frame_find(njb_songid_t *tag, const char *);
-void callback(void);
-
-void callback(void)
-{
-}
 
 
 static void datafile_dump(njb_datafile_t *df, FILE *fp)
