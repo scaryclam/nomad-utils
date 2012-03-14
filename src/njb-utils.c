@@ -53,8 +53,10 @@ int sync_db(njb_t *njb)
 {
     sqlite3 *db;
     int rc;
+    int str_len;
+    int result;
     char *zErrMsg = 0;
-    char *sql_statement;
+    char sql_statement[200];
     char *sql_statement_check;
     njb_songid_frame_t *frame;
     njb_songid_t *songtag;
@@ -95,26 +97,38 @@ int sync_db(njb_t *njb)
             printf("---------------------------------------\n");
         } */
         frame = songid_frame_find(songtag, FR_GENRE);
-        fprintf(stdout, "%s: ", frame->label);
+//        fprintf(stdout, "%s: ", frame->label);
 
-        if (frame->type == NJB_TYPE_STRING) {
-            fprintf(stdout, "%s\n", frame->data.strval);
-        } else if (frame->type == NJB_TYPE_UINT16) {
-            fprintf(stdout, "%d\n", frame->data.u_int16_val);
-        } else if (frame->type == NJB_TYPE_UINT32) {
-            fprintf(stdout, "%u\n", frame->data.u_int32_val);
-        } else {
-            fprintf(stdout, "(weird data word size, cannot display!)\n");
-        }
+//        if (frame->type == NJB_TYPE_STRING) {
+//            fprintf(stdout, "%s\n", frame->data.strval);
+//        } else if (frame->type == NJB_TYPE_UINT16) {
+//            fprintf(stdout, "%d\n", frame->data.u_int16_val);
+//        } else if (frame->type == NJB_TYPE_UINT32) {
+//            fprintf(stdout, "%u\n", frame->data.u_int32_val);
+//        } else {
+//            fprintf(stdout, "(weird data word size, cannot display!)\n");
+//        }
 
-/*        sql_statement_check = strcat("SELECT * FROM genre WHERE name=", frame->data.strval);
-        if (sqlite3_exec(db, sql_statement_check, 0, NULL, &zErrMsg) != 0)
+        strcpy(sql_statement, "SELECT * FROM genre WHERE name=");
+        strncat(sql_statement, frame->data.strval, strlen(frame->data.strval));
+        result = sqlite3_exec(db, sql_statement, 0, NULL, &zErrMsg);
+        //printf("Result: %s", zErrMsg);
+
+        if (zErrMsg)
         {
-            sql_statement = strcat("INSERT INTO genre VALUES(", frame->data.strval);
-            sql_statement = strcat(sql_statement, ")");
-            sqlite3_exec(db, sql_statement, 0, NULL, &zErrMsg);
+            sqlite3_free(zErrMsg);
+            strcpy(sql_statement, "INSERT INTO genre (name) VALUES('");
+            strncat(sql_statement, frame->data.strval, strlen(frame->data.strval));
+            strncat(sql_statement, "')", 2);
+            printf("Statement: %s\n", sql_statement);
+            rc = sqlite3_exec(db, sql_statement, 0, NULL, &zErrMsg);
+            if (rc != SQLITE_OK)
+            {
+                fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+            }
             NJB_Songid_Destroy(songtag);
-        }*/
+        }
     }
     sqlite3_close(db);
     NJB_Release(njb);
