@@ -6,21 +6,17 @@ int get_devices(njb_t *njbs, int i);
 static void datafile_dump (njb_datafile_t *df, FILE *fp);
 
 
-static void datafile_dump (njb_datafile_t *df, FILE *fp)
+static void datafile_dump(njb_datafile_t *df, FILE *fp)
 {
-  u_int64_t size = df->filesize;
+    long long unsigned int size = df->filesize;
   
-  fprintf(fp, "File ID  : %u\n", df->dfid);
-  fprintf(fp, "Filename : %s\n", df->filename);
-  if (df->folder != NULL) {
-    fprintf(fp, "Folder   : %s\n", df->folder);
-  }
-  fprintf(fp, "Fileflags: %08X\n", df->flags);
-#ifdef __WIN32__
-  fprintf(fp, "Size :     %I64u bytes\n", size);
-#else
-  fprintf(fp, "Size :     %llu bytes\n", size);
-#endif
+    fprintf(fp, "File ID  : %u\n", df->dfid);
+    fprintf(fp, "Filename : %s\n", df->filename);
+    if (df->folder != NULL) {
+        fprintf(fp, "Folder   : %s\n", df->folder);
+    }
+    fprintf(fp, "Fileflags: %08X\n", df->flags);
+    fprintf(fp, "Size :     %llu bytes\n", size);
 }
 
 int detect(njb_t *njbs)
@@ -40,16 +36,19 @@ int detect(njb_t *njbs)
     return someint;
 }
 
-int get_devices(njb_t *njbs, int i) {
+int get_devices(njb_t *njbs, int i)
+{
     njb_t *njb;
     njb = njbs;
     njb_datafile_t *filetag;
 
+    printf("Getting Devices, opening device ...\n");
     if ( NJB_Open(njb) == -1 ) {
         NJB_Error_Dump(njb, stderr);
         return 1;
     }
 
+    printf("Capturing the device\n");
     if ( NJB_Capture(njb) == -1 ) {
         NJB_Error_Dump(njb, stderr);
         return 1;
@@ -110,6 +109,9 @@ int main(void)
             printf("Error getting device name.\n");
             return 1;
         }
+
+        NJB_Release(njb);
+        NJB_Close(njb);
     }
 
     if (num_devs > 0) {
